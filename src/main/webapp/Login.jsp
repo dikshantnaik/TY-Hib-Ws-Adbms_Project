@@ -31,7 +31,6 @@
 
         } else {
             util.alert(out, result[1]);
-            System.out.println(result[1]);
         }
 
     }

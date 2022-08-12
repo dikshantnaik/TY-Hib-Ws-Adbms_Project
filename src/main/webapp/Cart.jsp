@@ -133,7 +133,6 @@
                                                     </html>
                                                     <%
                                                         } catch (Exception e) {
-                                                            System.out.println(e);
                                                             out.print(e);
                                                         } finally {
                                                             con.close();

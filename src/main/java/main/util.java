@@ -8,11 +8,7 @@ import java.security.*;
 import java.sql.*;
 import javax.servlet.http.*;
 import javax.servlet.jsp.JspWriter;
-import java.text.ParseException;
-import java.text.SimpleDateFormat;
-import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
-import java.util.Date;
+
 
 
 /**
@@ -156,7 +152,8 @@ public class util {
     }
 
     public static void addItemToCart(String username, String course_id) {
-        String query = "INSERT INTO cart VALUES((Select studentid FROM students WHERE username = ?),?)";
+	System.out.println(username+course_id);
+        String query = "INSERT INTO cart VALUES(NULL,(Select studentid FROM students WHERE username = ?),?)";
         try {
             Connection con = Database.initSql();
             PreparedStatement stmt = con.prepareStatement(query);
@@ -165,7 +162,7 @@ public class util {
             stmt.executeUpdate();
             System.out.println(stmt.toString());
         } catch (SQLException e) {
-            System.out.println(e);
+            e.printStackTrace();
         }
     }
 
