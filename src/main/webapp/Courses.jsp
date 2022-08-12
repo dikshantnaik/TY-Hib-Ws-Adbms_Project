@@ -14,7 +14,6 @@
     else{
     query = "SELECT * FROM available_course ";
     }
-    System.out.println(query);
     Connection con = Database.initSql();
     PreparedStatement stmt;
     try {
@@ -223,9 +222,7 @@
 </html>
 <%
     } catch (Exception e) {
-        System.out.println(e);
-        out.print(e);
-    } finally {
+e.printStackTrace();    } finally {
         if (con != null) {
             con.close();
         } else {
