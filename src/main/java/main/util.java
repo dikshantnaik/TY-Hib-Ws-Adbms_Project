@@ -26,66 +26,71 @@ public class util {
 
         out.println("<script>alert(\"" + msg + "\")</script>");
     }
-    
-     public static String[] login(String username, String password) throws SQLException {
-        
-        String query = "Select * from students";
-        
-        try {
-        password = util.digest(password);    
-            con = Database.initSql();
-            stmt = con.prepareStatement(query);
-            rs = stmt.executeQuery();
-            while (rs.next()) {                
-                if (rs.getString("username").equals(username)) {
-                    if(rs.getString("password").equals(password)){
-                        return new String[] {"logedin","LogIn Sucess ! Redirecting you to Home ! HOLD ON ",rs.getString("student_name")};
-                    }
-                    else{
-                        return new String[] {"wrongpass","Bruh ! Thats a Wrong Password \\nCan't you Remember a damn password"};
-                    }
-                   
-                }
-               
-            }
-           return new String[] {"nouser","No user Found with that username! "};
-        } catch (SQLException e) {
-            return new String[] {"error",e.toString()};
-        } catch (Exception e) {
-            return new String[] {"error",e.toString()};
-        }
-        finally{
-            con.close();
-            stmt.close();
-        }
-       
-    }
-    public static String [] register(String username,String password,String student_name,String college_course){
-        query = "Insert Into students VALUES(NULL,?,?,?,?)";
-        try{
-        con = Database.initSql();
-        stmt = con.prepareStatement(query);
-        stmt.setString(1,username);
-        stmt.setString(2, student_name);
-        stmt.setString(3, college_course);
-        stmt.setString(4, util.digest(password));
-        stmt.executeUpdate();
-        
-//        Why return an Array ? the First element indicated error code and second represent Message 
-        return new String[] {"registered","Registered Success"};
+
+    public static String[] login(String username, String password) throws SQLException {
+	 Connection con = null;
+	 password = digest(password);
+		CallableStatement cstmt = null;
+		try {
+		   String SQL = "{? = call login(?,?)}";
+		   
+		   con = Database.initSql();
+		   cstmt = con.prepareCall (SQL);
+		  cstmt.registerOutParameter(1, Types.VARCHAR);
+//		  System.out.println(username);
+//		  System.out.println(password);
+		   cstmt.setString(2, username);
+		   cstmt.setString(3, password);
+		   cstmt.execute();
+//		   System.out.println(cstmt.toString());
+		   System.out.println(cstmt.getString(1));
+		   if (!cstmt.getString(1).equals("nouser")) {
+		    return new String[] {"logedin","Sucessfully Logedin",cstmt.getString(1)};
+		}
+		   else {
+		       return new String[] {"wrongCreads","Wrong Credentials"};
+		}
+		}
+		catch (SQLException e) {
+		   return new String[] {"error",e.toString()};
+		}
+		
+       finally{
+           cstmt.close();
+           con.close();
            
-        }
-        catch(SQLException e){
-            if(e.getErrorCode()==1062){
-                return new String[] {"usernameExists","Username Taken Please use Different One"};
-            }
-            return new String[] {"error",e.toString()};
-            
-        }
-        catch (Exception e){
-            return new String[] {"error",e.toString()};
-        }
-    }
+       }
+
+      
+   }
+     public static String [] register(String username,String password,String student_name,String college_course){
+		CallableStatement cstmt = null;
+		password = digest(password);
+		try {
+		   String SQL = "{call Register(?, ?, ?,?)}";
+		   con = Database.initSql();
+		   cstmt = con.prepareCall (SQL);
+		   cstmt.setString(1, username);
+		   cstmt.setString(2, student_name);
+		   cstmt.setString(3, college_course);
+		   cstmt.setString(4, password);
+		   cstmt.execute();
+//	        Why return an Array ? the First element indicated error code and second represent Message 
+	        return new String[] {"registered","Registered Success"};
+	           
+	        }
+	        catch(SQLException e){
+	            if(e.getErrorCode()==1062){
+	                return new String[] {"usernameExists","Username Taken Please use Different One"};
+	            }
+	            return new String[] {"error",e.toString()};
+	            
+	        }
+	        catch (Exception e){
+	            return new String[] {"error",e.toString()};
+	        }
+	    }
+
     public static void logout(HttpServletRequest request, HttpServletResponse response) throws Exception {
 
         HttpSession session = request.getSession();
@@ -106,19 +111,27 @@ public class util {
         response.addCookie(ck);
     }
 
-    public static String digest(String msg) throws NoSuchAlgorithmException {
+    public static String digest(String msg)  {
         final char[] HEX_ARRAY = "0123456789ABCDEF".toCharArray();
-        MessageDigest md = MessageDigest.getInstance("SHA-256");
-        md.update(msg.getBytes());
-        byte bytes[] = md.digest();
+        MessageDigest md;
+	try {
+	    md = MessageDigest.getInstance("SHA-256");
+	    md.update(msg.getBytes());
+	        byte bytes[] = md.digest();
 
-        char[] hexChars = new char[bytes.length * 2];
-        for (int j = 0; j < bytes.length; j++) {
-            int v = bytes[j] & 0xFF;
-            hexChars[j * 2] = HEX_ARRAY[v >>> 4];
-            hexChars[j * 2 + 1] = HEX_ARRAY[v & 0x0F];
-        }
-        return new String(hexChars);
+	        char[] hexChars = new char[bytes.length * 2];
+	        for (int j = 0; j < bytes.length; j++) {
+	            int v = bytes[j] & 0xFF;
+	            hexChars[j * 2] = HEX_ARRAY[v >>> 4];
+	            hexChars[j * 2 + 1] = HEX_ARRAY[v & 0x0F];
+	        }
+	        return new String(hexChars);
+	} catch (NoSuchAlgorithmException e) {
+	    // TODO Auto-generated catch block
+	    e.printStackTrace();
+	    return null;
+	}
+        
     }
 
     public static String Review(String review, String course_id, String username) {
