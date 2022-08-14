@@ -3,7 +3,7 @@ package PojoFiles;
 import javax.persistence.*;
 
 
-@Table(name = "student")
+@Table(name = "students")
 @Entity
 public class Student {
 	@Id

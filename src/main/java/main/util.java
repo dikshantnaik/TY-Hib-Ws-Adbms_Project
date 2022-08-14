@@ -18,7 +18,7 @@ import org.hibernate.SessionFactory;
 import org.hibernate.Transaction;
 import org.hibernate.cfg.Configuration;
 
-import PojoFiles.Student;
+import PojoFiles.*;
 
 
 
@@ -37,7 +37,7 @@ public class util {
 
         out.println("<script>alert(\"" + msg + "\")</script>");
     }
-    public static Session hibernateUtils() {
+    public static Session getSession() {
 	    SessionFactory factory = new Configuration().configure("hibernate.cfg.xml").buildSessionFactory();
 	    Session session = factory.openSession();
 	    return session;
@@ -45,7 +45,7 @@ public class util {
     @SuppressWarnings("deprecation")
     public static String[] login(String username, String password) {
 	try {
-	    Session session = hibernateUtils();
+	    Session session = getSession();
 	    password = digest(password);
 	    Query query = session.createQuery("from Student where username=:susername and user_password=:spassword");
 	    query.setParameter("susername", username);
@@ -67,7 +67,7 @@ public class util {
 		CallableStatement cstmt = null;
 		password = digest(password);
 		try {
-		    Session session = hibernateUtils();
+		    Session session = getSession();
 		    Transaction t = session.beginTransaction();
 		    Student s1 = new Student();
 //			s1.setId(155);
@@ -142,20 +142,20 @@ public class util {
     }
 
     public static String Review(String review, String course_id, String username) {
-        try {
-            String query = "INSERT INTO review VALUES(NULL,?,(SELECT studentid FROM students WHERE username = ?),NULL,?)";
-            Connection con = Database.initSql();
-            PreparedStatement stmt = con.prepareStatement(query);
-            stmt.setString(1, course_id);
-            stmt.setString(2, username);
-            stmt.setString(3, review);
-            stmt.executeUpdate();
-            return "Done";
-        } catch (Exception e) {
-            System.out.println(e);
-            return e.toString();
-        }
-
+	Session session = getSession();
+	Transaction t = session.beginTransaction();
+	    Reviews r = new Reviews();
+	    Query query = session.createQuery("from Student where username = :user_name");
+	    query.setParameter("user_name", username);
+	    List<Student> result = query.list();
+	    r.setCourse((AvailableCourse) session.get(AvailableCourse.class, Integer.parseInt(course_id)));
+	    r.setStudent((Student) session.get(Student.class,result.get(0).getId()));
+	    r.setStudentReview(review);
+	    session.save(r);
+	    t.commit();
+	    session.close();
+	    
+	    return "Done";
     }
 
     public static void removeItemFromCart(String cid, String username) {
