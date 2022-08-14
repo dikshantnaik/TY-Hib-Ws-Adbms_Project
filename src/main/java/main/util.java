@@ -6,8 +6,19 @@ package main;
 
 import java.security.*;
 import java.sql.*;
+import java.util.List;
+
 import javax.servlet.http.*;
 import javax.servlet.jsp.JspWriter;
+
+import org.hibernate.JDBCException;
+import org.hibernate.Query;
+import org.hibernate.Session;
+import org.hibernate.SessionFactory;
+import org.hibernate.Transaction;
+import org.hibernate.cfg.Configuration;
+
+import PojoFiles.Student;
 
 
 
@@ -26,61 +37,57 @@ public class util {
 
         out.println("<script>alert(\"" + msg + "\")</script>");
     }
-
-    public static String[] login(String username, String password) throws SQLException {
-	 Connection con = null;
-	 password = digest(password);
-		CallableStatement cstmt = null;
-		try {
-		   String SQL = "{? = call login(?,?)}";
-		   
-		   con = Database.initSql();
-		   cstmt = con.prepareCall (SQL);
-		  cstmt.registerOutParameter(1, Types.VARCHAR);
-//		  System.out.println(username);
-//		  System.out.println(password);
-		   cstmt.setString(2, username);
-		   cstmt.setString(3, password);
-		   cstmt.execute();
-//		   System.out.println(cstmt.toString());
-		   System.out.println(cstmt.getString(1));
-		   if (!cstmt.getString(1).equals("nouser")) {
-		    return new String[] {"logedin","Sucessfully Logedin",cstmt.getString(1)};
-		}
-		   else {
-		       return new String[] {"wrongCreads","Wrong Credentials"};
-		}
-		}
-		catch (SQLException e) {
-		   return new String[] {"error",e.toString()};
-		}
-		
-       finally{
-           cstmt.close();
-           con.close();
-           
-       }
-
-      
-   }
+    public static Session hibernateUtils() {
+	    SessionFactory factory = new Configuration().configure("hibernate.cfg.xml").buildSessionFactory();
+	    Session session = factory.openSession();
+	    return session;
+    }
+    @SuppressWarnings("deprecation")
+    public static String[] login(String username, String password) {
+	try {
+	    Session session = hibernateUtils();
+	    password = digest(password);
+	    Query query = session.createQuery("from Student where username=:susername and user_password=:spassword");
+	    query.setParameter("susername", username);
+	    query.setParameter("spassword", password);
+	    
+	    List<Student> list = query.list();
+	    if(list.size()>=1) {
+		return new String[] {"logedin","Sucessfully Logedin",list.get(0).getStudent_name()};
+	    }
+	    else {
+		return new String[] {"wrongpasss","Invalid Credantials"};
+	    }
+	    
+	} catch (Exception e) {
+	    return new String[] { "error", e.toString() };
+	}
+    }
      public static String [] register(String username,String password,String student_name,String college_course){
 		CallableStatement cstmt = null;
 		password = digest(password);
 		try {
-		   String SQL = "{call Register(?, ?, ?,?)}";
-		   con = Database.initSql();
-		   cstmt = con.prepareCall (SQL);
-		   cstmt.setString(1, username);
-		   cstmt.setString(2, student_name);
-		   cstmt.setString(3, college_course);
-		   cstmt.setString(4, password);
-		   cstmt.execute();
-//	        Why return an Array ? the First element indicated error code and second represent Message 
+		    Session session = hibernateUtils();
+		    Transaction t = session.beginTransaction();
+		    Student s1 = new Student();
+//			s1.setId(155);
+			s1.setStudent_name(student_name);
+			s1.setCollege_course(college_course);	
+			s1.setUser_password(password);
+			s1.setUsername(username);
+			
+			session.save(s1);
+			t.commit();
+			
+			session.close();
+			
 	        return new String[] {"registered","Registered Success"};
 	           
 	        }
-	        catch(SQLException e){
-	            if(e.getErrorCode()==1062){
+	        catch(JDBCException e){
+	            SQLException cause = (SQLException) e.getCause();
+
+	            if(cause.getErrorCode()==1062){
 	                return new String[] {"usernameExists","Username Taken Please use Different One"};
 	            }
 	            return new String[] {"error",e.toString()};

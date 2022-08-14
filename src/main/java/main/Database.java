@@ -9,7 +9,7 @@ public  class Database {
 static Connection con;
 static String username = "root";
 static String password = "";
-static String database = "jsp-project"; 
+static String database = "hibernate-project"; 
  
    public static Connection initSql(){
        try{
