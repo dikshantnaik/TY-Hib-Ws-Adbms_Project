@@ -55,7 +55,7 @@ public class Controller extends HttpServlet {
             }
 
         } catch (Exception e) {
-            System.out.println(e);
+            e.printStackTrace();
         }
 
     }

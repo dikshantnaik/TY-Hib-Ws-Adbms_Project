@@ -17,7 +17,9 @@
 <mapping class="PojoFiles.Student"/>
 <mapping class="PojoFiles.AvailableCourse"/>
 <mapping class="PojoFiles.Reviews"/>
-
+<mapping class="PojoFiles.Cart"/>
+<mapping class="PojoFiles.Payment"/>
+<mapping class="PojoFiles.EnrolledCourse"/>
 
 
 </session-factory>
