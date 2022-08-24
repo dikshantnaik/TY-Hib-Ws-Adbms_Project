@@ -20,6 +20,8 @@ import org.hibernate.Session;
 import org.hibernate.SessionFactory;
 import org.hibernate.Transaction;
 import org.hibernate.cfg.Configuration;
+import org.json.JSONException;
+import org.json.JSONObject;
 
 import com.mashape.unirest.http.HttpResponse;
 import com.mashape.unirest.http.JsonNode;
@@ -51,39 +53,34 @@ public class util {
     }
 
     public static String[] login(String username, String password) {
-	Map<String,Object> parameter = new HashMap<>();
+	Map<String, Object> parameter = new HashMap<>();
 	parameter.put("username", username);
-	parameter.put("password",password);
-	String respone =  WebService.getApiCall("/Student",parameter).getBody().toString();
-	
+	parameter.put("password", password);
+	String respone = WebService.getApiCall("/Student", parameter).getBody().toString();
+	JSONObject obj = new JSONObject(respone);
+	try {
+	    String name = obj.getString("logedin");
+	    return new String[] { "logedin", "Sucessfully Logedin", name };
+	} catch (JSONException e) {
+	    return new String[] { "Wrong creds", "Invalid Credantials" };
+
+	    // TODO: handle exception
+	}
+
     }
 
     public static String[] register(String username, String password, String student_name, String college_course) {
 	password = digest(password);
+	String Body2 = String.format("username=%s&password=%s&student_name=%s&college_course=%s", username, password,
+		student_name, college_course);
 	try {
-	    Session session = getSession();
-	    Transaction t = session.beginTransaction();
-	    Student s1 = new Student();
-//			s1.setId(155);
-	    s1.setStudent_name(student_name);
-	    s1.setCollege_course(college_course);
-	    s1.setUser_password(password);
-	    s1.setUsername(username);
-
-	    session.save(s1);
-	    t.commit();
-
-	    session.close();
-
+	    String response = WebService.postApiCall("/Student", Body2).getBody().toString();
+	    JSONObject obj = new JSONObject(response);
+	    obj.getString("registered");
 	    return new String[] { "registered", "Registered Success" };
 
-	} catch (JDBCException e) {
-	    SQLException cause = (SQLException) e.getCause();
-
-	    if (cause.getErrorCode() == 1062) {
+	} catch (JSONException e) {
 		return new String[] { "usernameExists", "Username Taken Please use Different One" };
-	    }
-	    return new String[] { "error", e.toString() };
 
 	} catch (Exception e) {
 	    return new String[] { "error", e.toString() };
@@ -181,29 +178,26 @@ public class util {
 
     public static void EnrollCourse(String username) {
 	Session session = getSession();
-	    Transaction tx = session.beginTransaction();
-        String Selecting_Query = 	"SELECT new list(S.id,C.course.id)"+
-    	    			" FROM Cart C,Student S "
-    	    			+ "WHERE S.id=C.student "
-    	    			+ "AND S.username = :user_name "
-    	    			+ "GROUP BY C.course.id";
+	Transaction tx = session.beginTransaction();
+	String Selecting_Query = "SELECT new list(S.id,C.course.id)" + " FROM Cart C,Student S "
+		+ "WHERE S.id=C.student " + "AND S.username = :user_name " + "GROUP BY C.course.id";
 //        	+ "WHERE sid=students.studentid and username = \"" + "d"+ "\"";
-        Query query = session.createQuery(Selecting_Query);
-        query.setParameter("user_name", username);
-        List<List> ResultList = query.list();
-        for (List list: ResultList) {
-    	EnrolledCourse enrolledCourse = new EnrolledCourse();
-    	enrolledCourse.setStudent((Student)session.load(Student.class, (int)list.get(0)));
-    	enrolledCourse.setCourse((AvailableCourse)session.load(AvailableCourse.class, (int)list.get(1)));
-    	
-    	session.save(enrolledCourse);
-	    }
-        String hql = "Delete from Cart Where sid = (SELECT S.id FROM Student S WHERE username = :user_name) ";
-        Query query2 = session.createQuery(hql);
-        query2.setParameter("user_name", username);
-        query2.executeUpdate();
-        tx.commit();
-        session.close();
+	Query query = session.createQuery(Selecting_Query);
+	query.setParameter("user_name", username);
+	List<List> ResultList = query.list();
+	for (List list : ResultList) {
+	    EnrolledCourse enrolledCourse = new EnrolledCourse();
+	    enrolledCourse.setStudent((Student) session.load(Student.class, (int) list.get(0)));
+	    enrolledCourse.setCourse((AvailableCourse) session.load(AvailableCourse.class, (int) list.get(1)));
+
+	    session.save(enrolledCourse);
+	}
+	String hql = "Delete from Cart Where sid = (SELECT S.id FROM Student S WHERE username = :user_name) ";
+	Query query2 = session.createQuery(hql);
+	query2.setParameter("user_name", username);
+	query2.executeUpdate();
+	tx.commit();
+	session.close();
     }
 
     public static void Payment(String username, String name, String card_no, String card_edate, String cvv,
