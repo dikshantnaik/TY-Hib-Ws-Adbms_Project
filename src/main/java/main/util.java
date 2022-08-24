@@ -7,7 +7,9 @@ package main;
 import java.security.*;
 import java.sql.*;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import javax.servlet.http.*;
 import javax.servlet.jsp.JspWriter;
@@ -18,6 +20,9 @@ import org.hibernate.Session;
 import org.hibernate.SessionFactory;
 import org.hibernate.Transaction;
 import org.hibernate.cfg.Configuration;
+
+import com.mashape.unirest.http.HttpResponse;
+import com.mashape.unirest.http.JsonNode;
 
 import PojoFiles.*;
 
@@ -31,7 +36,7 @@ public class util {
     static Connection con;
     static PreparedStatement stmt;
     static ResultSet rs;
-    static String query;
+//    static String query;
     static String return_result[];
 
     public static void alert(JspWriter out, String msg) throws Exception {
@@ -46,23 +51,11 @@ public class util {
     }
 
     public static String[] login(String username, String password) {
-	try {
-	    Session session = getSession();
-	    password = digest(password);
-	    Query query = session.createQuery("from Student where username=:susername and user_password=:spassword");
-	    query.setParameter("susername", username);
-	    query.setParameter("spassword", password);
-
-	    List<Student> list = query.list();
-	    if (list.size() >= 1) {
-		return new String[] { "logedin", "Sucessfully Logedin", list.get(0).getStudent_name() };
-	    } else {
-		return new String[] { "wrongpasss", "Invalid Credantials" };
-	    }
-
-	} catch (Exception e) {
-	    return new String[] { "error", e.toString() };
-	}
+	Map<String,Object> parameter = new HashMap<>();
+	parameter.put("username", username);
+	parameter.put("password",password);
+	String respone =  WebService.getApiCall("/Student",parameter).getBody().toString();
+	
     }
 
     public static String[] register(String username, String password, String student_name, String college_course) {
