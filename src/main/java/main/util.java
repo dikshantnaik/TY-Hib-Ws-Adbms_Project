@@ -6,27 +6,19 @@ package main;
 
 import java.security.*;
 import java.sql.*;
-import java.util.Date;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 
 import javax.servlet.http.*;
 import javax.servlet.jsp.JspWriter;
 
-import org.hibernate.JDBCException;
-import org.hibernate.Query;
 import org.hibernate.Session;
 import org.hibernate.SessionFactory;
-import org.hibernate.Transaction;
 import org.hibernate.cfg.Configuration;
 import org.json.JSONException;
 import org.json.JSONObject;
 
-import com.mashape.unirest.http.HttpResponse;
-import com.mashape.unirest.http.JsonNode;
 
-import PojoFiles.*;
 
 /**
  *
@@ -129,92 +121,100 @@ public class util {
 	}
 
     }
-
     public static String Review(String review, String course_id, String username) {
-	Session session = getSession();
-	Transaction t = session.beginTransaction();
-	Reviews r = new Reviews();
-	Query query = session.createQuery("from Student where username = :user_name");
-	query.setParameter("user_name", username);
-	List<Student> result = query.list();
-	r.setCourse((AvailableCourse) session.get(AvailableCourse.class, Integer.parseInt(course_id)));
-	r.setStudent((Student) session.get(Student.class, result.get(0).getId()));
-	r.setStudentReview(review);
-	session.save(r);
-	t.commit();
-	session.close();
+   	try {
+   	    String query = "INSERT INTO review VALUES(NULL,?,(SELECT studentid FROM students WHERE username = ?),NULL,?)";
+   	    Connection con = Database.initSql();
+   	    PreparedStatement stmt = con.prepareStatement(query);
+   	    stmt.setString(1, course_id);
+   	    stmt.setString(2, username);
+   	    stmt.setString(3, review);
+   	    stmt.executeUpdate();
+   	    return "Done";
+   	} catch (Exception e) {
+   	    System.out.println(e);
+   	    return e.toString();
+   	}
 
-	return "Done";
-    }
+       }
 
-    public static void removeItemFromCart(String cid, String username) {
-	Session session = getSession();
-	Transaction t = session.beginTransaction();
-	String hql = "Delete from Cart Where cid = :c_id AND sid = (SELECT S.id FROM Student S WHERE username = :user_name) ";
-	Query query = session.createQuery(hql);
-	query.setParameter("c_id", cid);
-	query.setParameter("user_name", username);
-	query.executeUpdate();
-	t.commit();
-	session.close();
+       public static void removeItemFromCart(String cid, String username) {
+   	try {
+   	    String query = "DELETE FROM cart WHERE sid = (SELECT studentid from students WHERE username=\"" + username
+   		    + "\") and  cid= " + cid;
 
-    }
+   	    Connection con = Database.initSql();
+   	    PreparedStatement stmt = con.prepareStatement(query);
+   	    stmt.execute();
 
-    public static void addItemToCart(String username, String course_id) {
-	Session session = getSession();
-	Transaction t = session.beginTransaction();
-	Cart cart = new Cart();
-	cart.setCourse((AvailableCourse) session.load(AvailableCourse.class, Integer.parseInt(course_id)));
+   	} catch (SQLException e) {
+   	    System.out.println(e);
+   	}
+       }
 
-	Query query = session.createQuery("from Student where username = :user_name");
-	query.setParameter("user_name", username);
-	List<Student> result = query.list();
-	cart.setStudent((Student) session.load(Student.class, result.get(0).getId()));
-	session.save(cart);
-	t.commit();
-	session.close();
+       public static void addItemToCart(String username, String course_id) {
+   	String query = "INSERT INTO cart VALUES((Select studentid FROM students WHERE username = ?),?)";
+   	try {
+   	    Connection con = Database.initSql();
+   	    PreparedStatement stmt = con.prepareStatement(query);
+   	    stmt.setString(1, username);
+   	    stmt.setInt(2, Integer.parseInt(course_id));
+   	    stmt.executeUpdate();
+   	    System.out.println(stmt.toString());
+   	} catch (SQLException e) {
+   	    System.out.println(e);
+   	}
+       }
 
-    }
+       public static void EnrollCourse(String username) {
+   	try {
+   	    String Selecting_Query = "SELECT sid,cid FROM cart,students WHERE sid=students.studentid and username = \""
+   		    + username + "\"";
+   	    String Insrting_query;
+   	    String sid;
+   	    Connection con = Database.initSql();
+   	    PreparedStatement Select_stmt = con.prepareStatement(Selecting_Query);
+   	    ResultSet rs = Select_stmt.executeQuery();
+   	    while (rs.next()) {
+   		sid = rs.getString("sid");
+   		Insrting_query = "INSERT INTO `enrolled_course`(id,student_id,course_id) VALUES (NULL,'" + sid + "' , '"
+   			+ rs.getString("cid") + "')";
+   		PreparedStatement Insert_stmt = con.prepareCall(Insrting_query);
+   		Insert_stmt.executeUpdate();
+   	    }
+   	    String Delete_Query = "DELETE FROM `cart` WHERE sid=(Select studentid FROM students where username = '"
+   		    + username + "')";
+   	    PreparedStatement Delete_stmt = con.prepareStatement(Delete_Query);
+   	    Delete_stmt.executeUpdate();
 
-    public static void EnrollCourse(String username) {
-	Session session = getSession();
-	Transaction tx = session.beginTransaction();
-	String Selecting_Query = "SELECT new list(S.id,C.course.id)" + " FROM Cart C,Student S "
-		+ "WHERE S.id=C.student " + "AND S.username = :user_name " + "GROUP BY C.course.id";
-//        	+ "WHERE sid=students.studentid and username = \"" + "d"+ "\"";
-	Query query = session.createQuery(Selecting_Query);
-	query.setParameter("user_name", username);
-	List<List> ResultList = query.list();
-	for (List list : ResultList) {
-	    EnrolledCourse enrolledCourse = new EnrolledCourse();
-	    enrolledCourse.setStudent((Student) session.load(Student.class, (int) list.get(0)));
-	    enrolledCourse.setCourse((AvailableCourse) session.load(AvailableCourse.class, (int) list.get(1)));
+   	} catch (SQLException e) {
+   	    System.out.println(e);
+   	}
+       }
 
-	    session.save(enrolledCourse);
-	}
-	String hql = "Delete from Cart Where sid = (SELECT S.id FROM Student S WHERE username = :user_name) ";
-	Query query2 = session.createQuery(hql);
-	query2.setParameter("user_name", username);
-	query2.executeUpdate();
-	tx.commit();
-	session.close();
-    }
+       public static void Payment(String username, String name, String card_no, String card_edate, String cvv,
+   	    String course_price, String trans_fee, String total) {
 
-    public static void Payment(String username, String name, String card_no, String card_edate, String cvv,
-	    String course_price, String trans_fee, String total) {
-	Session session = getSession();
-	Transaction t = session.beginTransaction();
-	Query query = session.createQuery("from Student where username = :user_name");
-	query.setParameter("user_name", username);
-	List<Student> result = query.list();
+   	String query = "Insert Into payment VALUES(NULL,(SELECT students.studentid FROM students WHERE students.username = ? ),?,?,?,?,?,?,?)";
 
-	Payment payment = new Payment((Student) session.load(Student.class, result.get(0).getId()), name,
-		Integer.parseInt(card_no), card_edate, Integer.parseInt(cvv), Integer.parseInt(course_price),
-		Math.round(Float.parseFloat(trans_fee)), Math.round(Float.parseFloat(total)));
-	session.save(payment);
-	t.commit();
-	session.close();
-	util.EnrollCourse(username);
+   	try {
+   	    con = Database.initSql();
+   	    stmt = con.prepareStatement(query);
+   	    stmt.setString(1, username);
+   	    stmt.setString(2, name);
+   	    stmt.setString(3, card_no);
+   	    stmt.setString(4, card_edate);
+   	    stmt.setString(5, cvv);
+   	    stmt.setString(6, course_price);
+   	    stmt.setString(7, trans_fee);
+   	    stmt.setString(8, total);
+   	    stmt.executeUpdate();
+   	    util.EnrollCourse(username);
+   	}
+   	  catch (Exception e) {
+   	      e.printStackTrace();
+   	  }
 
-    }
-}
+//           Why return an Array ? the First element indicated error code and second represent Message 
+   	}}
+
