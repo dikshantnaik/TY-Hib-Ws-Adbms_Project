@@ -18,6 +18,8 @@ import org.hibernate.cfg.Configuration;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import com.google.protobuf.Empty;
+
 
 
 /**
@@ -140,28 +142,23 @@ public class util {
 
        public static void removeItemFromCart(String cid, String username) {
    	try {
-   	    String query = "DELETE FROM cart WHERE sid = (SELECT studentid from students WHERE username=\"" + username
-   		    + "\") and  cid= " + cid;
+   	 Map<String, Object> params = new HashMap<>();
+ 	params.put("username", username);
+ 	params.put("cid", Integer.parseInt(cid));
+   	   WebService.deleteApiCall("/Cart", params);
 
-   	    Connection con = Database.initSql();
-   	    PreparedStatement stmt = con.prepareStatement(query);
-   	    stmt.execute();
-
-   	} catch (SQLException e) {
-   	    System.out.println(e);
+   	} catch (Exception e) {
+   	    e.printStackTrace();
    	}
        }
 
        public static void addItemToCart(String username, String course_id) {
-   	String query = "INSERT INTO cart VALUES((Select studentid FROM students WHERE username = ?),?)";
    	try {
-   	    Connection con = Database.initSql();
-   	    PreparedStatement stmt = con.prepareStatement(query);
-   	    stmt.setString(1, username);
-   	    stmt.setInt(2, Integer.parseInt(course_id));
-   	    stmt.executeUpdate();
-   	    System.out.println(stmt.toString());
-   	} catch (SQLException e) {
+   	    Map<String,Object> params = new HashMap<>();
+   	    params.put("username", username);
+   	    params.put("cid", Integer.parseInt(course_id));
+   	    WebService.putApiCall("/Cart", params);
+   	} catch (Exception e) {
    	    System.out.println(e);
    	}
        }

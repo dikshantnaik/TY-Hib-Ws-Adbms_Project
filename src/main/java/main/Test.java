@@ -21,14 +21,12 @@ import com.mashape.unirest.http.exceptions.UnirestException;
 public class Test {
     public static void main(String[] args) {
 
-	String username = "Dikkkkk";
-	String password = "passass";
-	String student_name = "DikIdikkkkk";
-	String college_course = "HEHEHEHE";
-	String Body = "username=dik2323&password=breadjamd23&student_name=Dikshant23&college_course=science";
-	String Body2 = String.format("username=%s&password=%s&student_name=%s&college_course=%s", username, password,
-		student_name, college_course);
-	String[] res = util.register(username, password, student_name, college_course);
+	Map<String, Object> params = new HashMap<>();
+	params.put("username", "dik");
+	params.put("cid", "2");
+//	String Body2 = String.format("username=%s&password=%s&student_name=%s&college_course=%s", username, password,
+//		student_name, college_course);
+	String[] res = util.removeItemFromCart(null, null);
 	System.out.println(res[0]);
 
 
