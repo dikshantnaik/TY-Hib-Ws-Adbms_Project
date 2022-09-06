@@ -183,25 +183,12 @@ public class util {
 
     public static void EnrollCourse(String username) {
 	try {
-	    String Selecting_Query = "SELECT sid,cid FROM cart,students WHERE sid=students.studentid and username = \""
-		    + username + "\"";
-	    String Insrting_query;
-	    String sid;
-	    Connection con = Database.initSql();
-	    PreparedStatement Select_stmt = con.prepareStatement(Selecting_Query);
-	    ResultSet rs = Select_stmt.executeQuery();
-	    while (rs.next()) {
-		sid = rs.getString("sid");
-		Insrting_query = "INSERT INTO `enrolled_course`(id,student_id,course_id) VALUES (NULL,'" + sid + "' , '"
-			+ rs.getString("cid") + "')";
-		PreparedStatement Insert_stmt = con.prepareCall(Insrting_query);
-		Insert_stmt.executeUpdate();
-	    }
-	    String Delete_Query = "DELETE FROM `cart` WHERE sid=(Select studentid FROM students where username = '"
-		    + username + "')";
-	    PreparedStatement Delete_stmt = con.prepareStatement(Delete_Query);
-	    Delete_stmt.executeUpdate();
-
+	    CallableStatement cstmt = null;
+	    con = Database.initSql();
+		    String SQL = "{call EnrollCourse(?)}";
+		    cstmt = con.prepareCall(SQL);
+		    cstmt.setString(1, username);
+		    cstmt.execute();
 	} catch (SQLException e) {
 	    System.out.println(e);
 	}
